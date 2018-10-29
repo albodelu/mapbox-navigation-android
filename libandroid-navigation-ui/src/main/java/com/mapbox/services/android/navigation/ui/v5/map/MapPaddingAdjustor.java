@@ -13,29 +13,60 @@ class MapPaddingAdjustor {
   private static final int BOTTOMSHEET_PADDING_MULTIPLIER = 4;
   private static final int WAYNAME_PADDING_MULTIPLIER = 2;
 
-  private final int defaultTopPadding;
-  private final int waynameTopPadding;
-  private MapboxMap mapboxMap;
+  private final MapboxMap mapboxMap;
+  private final int[] defaultPadding;
+  private int[] customPadding;
 
   MapPaddingAdjustor(MapView mapView, MapboxMap mapboxMap) {
     this.mapboxMap = mapboxMap;
-    defaultTopPadding = calculateTopPaddingDefault(mapView);
-    waynameTopPadding = calculateTopPaddingWithWayname(mapView.getContext(), defaultTopPadding);
+    defaultPadding = calculateDefaultPadding(mapView);
   }
 
-  void updateTopPaddingWithWayname() {
-    updateTopPadding(waynameTopPadding);
+  // Testing only
+  MapPaddingAdjustor(MapboxMap mapboxMap, int[] defaultPadding) {
+    this.mapboxMap = mapboxMap;
+    this.defaultPadding = defaultPadding;
   }
 
-  void updateTopPaddingWithDefault() {
-    updateTopPadding(defaultTopPadding);
+  void updatePaddingWithDefault() {
+    customPadding = null;
+    updatePaddingWith(defaultPadding);
   }
 
-  void removeAllPadding() {
-    updatePadding(ZERO_MAP_PADDING);
+  void updatePaddingWithZero() {
+    updatePaddingWith(ZERO_MAP_PADDING);
   }
 
-  private int calculateTopPaddingDefault(MapView mapView) {
+  void adjustLocationIconWith(int[] customPadding) {
+    this.customPadding = customPadding;
+    updatePaddingWith(customPadding);
+  }
+
+  int[] retrieveCurrentPadding() {
+    return mapboxMap.getPadding();
+  }
+
+  boolean isUsingDefault() {
+    return customPadding == null;
+  }
+
+  void resetPadding() {
+    if (isUsingDefault()) {
+      updatePaddingWithDefault();
+    } else {
+      adjustLocationIconWith(customPadding);
+    }
+  }
+
+  private int[] calculateDefaultPadding(MapView mapView) {
+    int defaultTopPadding = calculateTopPaddingWithoutWayname(mapView);
+    Resources resources = mapView.getContext().getResources();
+    int waynameLayoutHeight = (int) resources.getDimension(R.dimen.wayname_view_height);
+    int topPadding = defaultTopPadding - (waynameLayoutHeight * WAYNAME_PADDING_MULTIPLIER);
+    return new int[] {0, topPadding, 0, 0};
+  }
+
+  private int calculateTopPaddingWithoutWayname(MapView mapView) {
     Context context = mapView.getContext();
     Resources resources = context.getResources();
     int mapViewHeight = mapView.getHeight();
@@ -43,17 +74,7 @@ class MapPaddingAdjustor {
     return mapViewHeight - (bottomSheetHeight * BOTTOMSHEET_PADDING_MULTIPLIER);
   }
 
-  private int calculateTopPaddingWithWayname(Context context, int defaultTopPadding) {
-    Resources resources = context.getResources();
-    int waynameLayoutHeight = (int) resources.getDimension(R.dimen.wayname_view_height);
-    return defaultTopPadding - (waynameLayoutHeight * WAYNAME_PADDING_MULTIPLIER);
-  }
-
-  private void updatePadding(int[] padding) {
+  private void updatePaddingWith(int[] padding) {
     mapboxMap.setPadding(padding[0], padding[1], padding[2], padding[3]);
-  }
-
-  private void updateTopPadding(int topPadding) {
-    mapboxMap.setPadding(0, topPadding, 0, 0);
   }
 }
