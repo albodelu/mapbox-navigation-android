@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.location.Location;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.design.widget.CoordinatorLayout;
@@ -20,6 +21,7 @@ import android.widget.ImageButton;
 import com.mapbox.api.directions.v5.models.DirectionsRoute;
 import com.mapbox.api.directions.v5.models.RouteOptions;
 import com.mapbox.geojson.Point;
+import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.constants.MapboxConstants;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
@@ -81,6 +83,7 @@ public class NavigationView extends CoordinatorLayout implements LifecycleObserv
   private OnNavigationReadyCallback onNavigationReadyCallback;
   private NavigationOnCameraTrackingChangedListener onTrackingChangedListener;
   private NavigationMapboxMapInstanceState mapInstanceState;
+  private CameraPosition initialMapCameraPosition;
   private boolean isMapInitialized;
   private boolean isSubscribed;
 
@@ -268,6 +271,10 @@ public class NavigationView extends CoordinatorLayout implements LifecycleObserv
     navigationMap = new NavigationMapboxMap(mapView, map);
     if (mapInstanceState != null) {
       navigationMap.restoreFrom(mapInstanceState);
+      return;
+    }
+    if (initialMapCameraPosition != null) {
+      map.setCameraPosition(initialMapCameraPosition);
     }
   }
 
@@ -381,6 +388,25 @@ public class NavigationView extends CoordinatorLayout implements LifecycleObserv
    */
   public void initialize(OnNavigationReadyCallback onNavigationReadyCallback) {
     this.onNavigationReadyCallback = onNavigationReadyCallback;
+    if (!isMapInitialized) {
+      mapView.getMapAsync(this);
+    } else {
+      onNavigationReadyCallback.onNavigationReady(navigationViewModel.isRunning());
+    }
+  }
+
+  /**
+   * Should be called after {@link NavigationView#onCreate(Bundle)}.
+   * <p>
+   * This method adds the {@link OnNavigationReadyCallback},
+   * which will fire ready / cancel events for this view.
+   *
+   * @param onNavigationReadyCallback to be set to this view
+   */
+  public void initialize(OnNavigationReadyCallback onNavigationReadyCallback,
+                         @NonNull CameraPosition initialMapCameraPosition) {
+    this.onNavigationReadyCallback = onNavigationReadyCallback;
+    this.initialMapCameraPosition = initialMapCameraPosition;
     if (!isMapInitialized) {
       mapView.getMapAsync(this);
     } else {
